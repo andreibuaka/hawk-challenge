@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  repository: ${{ github.repository_owner }}/hawk-hello-world
+  repository: hello-world
   pullPolicy: IfNotPresent
   tag: "latest"
 
