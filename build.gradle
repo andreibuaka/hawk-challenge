@@ -51,4 +51,63 @@ jacocoTestCoverageVerification {
 
 // Ensure check runs after test
 check.dependsOn jacocoTestCoverageVerification
-jacocoTestCoverageVerification.dependsOn jacocoTestReport 
+jacocoTestCoverageVerification.dependsOn jacocoTestReport plugins {
+    id 'java'
+    id 'application'
+    id 'jacoco'
+    id 'checkstyle'
+}
+
+group = 'com.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+application {
+    mainClass = 'com.example.HelloWorld'
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.4
+            }
+        }
+    }
+}
+
+checkstyle {
+    toolVersion = '8.45'
+    configFile = file("${rootDir}/config/checkstyle.xml")
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.example.HelloWorld'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

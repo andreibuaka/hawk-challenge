@@ -40,4 +40,27 @@ fi
 # echo "✅ Success: Service endpoint reachable."
 
 echo "--- Ephemeral Check Completed Successfully ---"
-exit 0 
+exit 0 #!/bin/bash
+set -e
+
+echo "Running smoke test on ephemeral environment..."
+
+# Wait for the pod to be ready
+POD_NAME=$(kubectl get pods -l app.kubernetes.io/instance=ephemeral-hello -o jsonpath="{.items[0].metadata.name}")
+echo "Checking pod: $POD_NAME"
+
+# Check if pod is running
+kubectl get pod $POD_NAME
+
+# Get logs from the pod
+echo "Collecting logs from the pod..."
+kubectl logs $POD_NAME > ephemeral-logs.txt
+
+# Check if "Hello World" appears in the logs
+if grep -q "Hello World" ephemeral-logs.txt; then
+    echo "✅ Smoke test passed: 'Hello World' found in logs"
+    exit 0
+else
+    echo "❌ Smoke test failed: 'Hello World' not found in logs"
+    exit 1
+fi

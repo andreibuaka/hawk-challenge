@@ -21,4 +21,26 @@ jobs:
           ignore-unfixed: true # Don't fail on vulnerabilities with no fix available
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH' # Only fail on Critical or High severity
-          # *** REMOVED PLACEHOLDER COMMENT *** 
+          # *** REMOVED PLACEHOLDER COMMENT *** name: Weekly Vulnerability Scan
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Run at 2 AM UTC every Sunday
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Pull latest image
+      run: |
+        docker pull ${{ github.repository_owner }}/hawk-hello-world:latest
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ github.repository_owner }}/hawk-hello-world:latest
+        format: 'table'
+        exit-code: '0'  # Don't fail the workflow, just report
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'

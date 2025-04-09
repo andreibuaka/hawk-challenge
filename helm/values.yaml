@@ -31,4 +31,30 @@ serviceAccount:
   annotations: {}
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
-  name: "" 
+  name: "" # Default values for hello-world
+replicaCount: 1
+
+image:
+  repository: my-dockerhub-user/hawk-hello-world
+  tag: latest
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+deployment:
+  color: blue  # blue or green for blue-green deployment
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+ephemeral: false

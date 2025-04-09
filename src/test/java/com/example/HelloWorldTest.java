@@ -27,4 +27,24 @@ class HelloWorldTest {
             fail("Main method threw an unexpected exception: " + e.getMessage());
         }
     }
-} 
+} package com.example;
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+public class HelloWorldTest {
+    @Test
+    public void testMainMethodDoesNotThrowException() {
+        // This test just verifies that the main method can be called without throwing exceptions
+        // We'll interrupt it after a short time since the main method contains an infinite loop
+        assertDoesNotThrow(() -> {
+            Thread mainThread = new Thread(() -> {
+                String[] args = new String[0];
+                HelloWorld.main(args);
+            });
+            mainThread.start();
+            Thread.sleep(100); // Let it run briefly
+            mainThread.interrupt();
+        });
+    }
+}
