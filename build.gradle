@@ -5,59 +5,6 @@ plugins {
     id 'jacoco'
 }
 
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
-}
-
-application {
-    mainClass = 'com.example.HelloWorld'
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
-}
-
-checkstyle {
-    toolVersion = '8.45.1' // Specify a Checkstyle version
-    configFile = file("${project.rootDir}/config/checkstyle.xml")
-}
-
-jacoco {
-    toolVersion = "0.8.7" // Specify a Jacoco version
-}
-
-jacocoTestReport {
-    reports {
-        xml.required = true
-        csv.required = false
-        html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
-    }
-}
-
-jacocoTestCoverageVerification {
-    violationRules {
-        rule {
-            limit {
-                minimum = 0.4 // Minimum 40% coverage
-            }
-        }
-    }
-}
-
-// Ensure check runs after test
-check.dependsOn jacocoTestCoverageVerification
-jacocoTestCoverageVerification.dependsOn jacocoTestReport plugins {
-    id 'java'
-    id 'application'
-    id 'jacoco'
-    id 'checkstyle'
-}
-
 group = 'com.example'
 version = '1.0-SNAPSHOT'
 
@@ -79,11 +26,22 @@ test {
     finalizedBy jacocoTestReport
 }
 
+checkstyle {
+    toolVersion = '8.45.1'
+    configFile = file("${project.rootDir}/config/checkstyle.xml")
+}
+
+jacoco {
+    toolVersion = "0.8.7"
+}
+
 jacocoTestReport {
     dependsOn test
     reports {
         xml.required = true
         html.required = true
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
     }
 }
 
@@ -91,16 +49,15 @@ jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                minimum = 0.4
+                minimum = 0.4 // Minimum 40% coverage
             }
         }
     }
 }
 
-checkstyle {
-    toolVersion = '8.45'
-    configFile = file("${rootDir}/config/checkstyle.xml")
-}
+// Ensure check runs after test
+check.dependsOn jacocoTestCoverageVerification
+jacocoTestCoverageVerification.dependsOn jacocoTestReport
 
 jar {
     manifest {

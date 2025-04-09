@@ -4,11 +4,10 @@ set -euo pipefail
 
 # Basic smoke test for the ephemeral deployment
 
-APP_NAME="ephemeral-hello-hello-world"
 LOG_FILE="ephemeral-logs.txt"
 MAX_WAIT_SECONDS=60
 
-echo "--- Starting Ephemeral Check for $APP_NAME ---"
+echo "--- Starting Ephemeral Check ---"
 
 # 1. Wait for the pod to be running
 echo "Waiting up to $MAX_WAIT_SECONDS seconds for pod to be running..."
@@ -27,40 +26,11 @@ if grep -q "Hello World" "$LOG_FILE"; then
   echo "✅ Success: 'Hello World' found in logs."
 else
   echo "❌ Failure: 'Hello World' not found in logs."
-  echo "--- Pod Logs ($POD_NAME) --- ":
+  echo "--- Pod Logs ($POD_NAME) ---"
   cat "$LOG_FILE"
   echo "---------------------------"
   exit 1
 fi
 
-# Optional: Add HTTP check if the service were exposed and listening
-# echo "Checking service endpoint..."
-# SERVICE_IP=$(kubectl get svc $APP_NAME -o jsonpath='{.spec.clusterIP}')
-# curl --fail --max-time 5 http://$SERVICE_IP:80 || { echo "❌ Failure: Service endpoint check failed"; exit 1; }
-# echo "✅ Success: Service endpoint reachable."
-
 echo "--- Ephemeral Check Completed Successfully ---"
-exit 0 #!/bin/bash
-set -e
-
-echo "Running smoke test on ephemeral environment..."
-
-# Wait for the pod to be ready
-POD_NAME=$(kubectl get pods -l app.kubernetes.io/instance=ephemeral-hello -o jsonpath="{.items[0].metadata.name}")
-echo "Checking pod: $POD_NAME"
-
-# Check if pod is running
-kubectl get pod $POD_NAME
-
-# Get logs from the pod
-echo "Collecting logs from the pod..."
-kubectl logs $POD_NAME > ephemeral-logs.txt
-
-# Check if "Hello World" appears in the logs
-if grep -q "Hello World" ephemeral-logs.txt; then
-    echo "✅ Smoke test passed: 'Hello World' found in logs"
-    exit 0
-else
-    echo "❌ Smoke test failed: 'Hello World' not found in logs"
-    exit 1
-fi
+exit 0

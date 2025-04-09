@@ -1,43 +1,10 @@
 # Default values for hello-world.
-
 replicaCount: 1
 
 image:
-  repository: andreibuakakaka/hawk-hello-world # Placeholder - needs Docker Hub username
+  repository: ${{ github.repository_owner }}/hawk-hello-world
   pullPolicy: IfNotPresent
-  # Overridden by pipeline with commit SHA
   tag: "latest"
-
-# Indicates if this is an ephemeral deployment (e.g., for testing)
-ephemeral: false
-
-# Blue-green deployment settings (simplified)
-# We'll manage this more directly in the pipeline for now, but structure is here
-deployment:
-  # If using separate blue/green deployments, you might have color: blue or color: green
-  # For simplicity, we'll use one deployment and update its image tag.
-  name: hello-world
-
-service:
-  type: ClusterIP
-  port: 80
-  # If your app exposed a port (e.g., 8080), specify it:
-  # targetPort: 8080
-
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: "" # Default values for hello-world
-replicaCount: 1
-
-image:
-  repository: my-dockerhub-user/hawk-hello-world
-  tag: latest
-  pullPolicy: IfNotPresent
 
 nameOverride: ""
 fullnameOverride: ""
@@ -48,6 +15,7 @@ deployment:
 service:
   type: ClusterIP
   port: 80
+  targetPort: 80
 
 resources:
   limits:
@@ -56,5 +24,16 @@ resources:
   requests:
     cpu: 50m
     memory: 64Mi
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext: {}
+securityContext: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
 
 ephemeral: false

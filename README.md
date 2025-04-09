@@ -1,4 +1,4 @@
-# Hawk Hello World CI/CD Challenge # Hello World CI/CD Pipeline
+# Hawk Hello World CI/CD Challenge
 
 This project demonstrates a complete CI/CD pipeline for a simple Java application that prints "Hello World" every two seconds.
 
@@ -56,3 +56,10 @@ Before running the pipeline, you need to set up the following secrets in your Gi
 
 - `DOCKER_USERNAME`: Your Docker Hub username
 - `DOCKER_PASSWORD`: Your Docker Hub password or access token
+
+## Prerequisites
+
+- Java 17 or later
+- Docker
+- Kubernetes (for deployment)
+- Helm (for Kubernetes package management)

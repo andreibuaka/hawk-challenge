@@ -1,7 +1,9 @@
-name: Hawk Hello World CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
+    branches: [ "main" ]
+  pull_request:
     branches: [ "main" ]
   workflow_dispatch: # Allow manual triggering
 
@@ -11,162 +13,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-test-scan-push:
-    runs-on: ubuntu-latest
-    outputs:
-      image_tag: ${{ steps.set_image_tag.outputs.tag }}
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Set up Gradle Wrapper (if not checked in)
-        run: gradle wrapper --gradle-version 7.4 # Match version used in Dockerfile
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Cache Gradle packages
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Build & Test with Gradle
-        run: ./gradlew build jacocoTestReport jacocoTestCoverageVerification
-        # This step fails if coverage < 40% or tests fail
-
-      - name: Static Analysis with Checkstyle
-        run: ./gradlew checkstyleMain
-        # This step fails if Checkstyle finds violations
-
-      - name: Set Image Tag
-        id: set_image_tag
-        run: echo "::set-output name=tag::${GITHUB_SHA::7}" # Use short SHA as tag
-
-      - name: Build Docker image
-        run: |
-          docker build -t andreibuakakaka/hawk-hello-world:${{ steps.set_image_tag.outputs.tag }} \
-                       -t andreibuakakaka/hawk-hello-world:latest .
-          echo "Built image: andreibuakakaka/hawk-hello-world:${{ steps.set_image_tag.outputs.tag }}"
-
-      - name: Set up Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'andreibuakakaka/hawk-hello-world:${{ steps.set_image_tag.outputs.tag }}'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Push Docker image
-        run: |
-          docker push andreibuakakaka/hawk-hello-world:${{ steps.set_image_tag.outputs.tag }}
-          docker push andreibuakakaka/hawk-hello-world:latest
-
-  ephemeral-test:
-    runs-on: ubuntu-latest
-    needs: build-test-scan-push # Run only after build job succeeds
-    if: github.ref == 'refs/heads/main' # Only run for main branch pushes
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-
-      - name: Set Image Tag (from previous job)
-        id: set_image_tag
-        run: echo "::set-output name=tag::${{ needs.build-test-scan-push.outputs.image_tag }}"
-
-      - name: Set up KinD (Kubernetes in Docker)
-        uses: helm/kind-action@v1.4.0
-        # This action creates a kind cluster named 'kind'
-
-      - name: Grant execute permission for ephemeral check script
-        run: chmod +x ephemeral-check.sh
-
-      - name: Install Helm chart in KinD for ephemeral test
-        run: |
-          echo "Deploying image tag: ${{ steps.set_image_tag.outputs.tag }}"
-          helm install ephemeral-hello ./helm \
-            --set image.repository=andreibuakakaka/hawk-hello-world \
-            --set image.tag=${{ steps.set_image_tag.outputs.tag }} \
-            --set ephemeral=true \
-            --wait --timeout 1m0s
-
-      - name: Run Smoke Test Script
-        run: ./ephemeral-check.sh
-        # This script waits for pod, checks logs, exits 1 on failure
-
-      - name: Upload Ephemeral Logs on Failure
-        uses: actions/upload-artifact@v3
-        if: failure()
-        with:
-          name: ephemeral-logs
-          path: ephemeral-logs.txt
-
-      # Cleanup happens automatically when the kind-action finishes
-
-  # Placeholder for Production Deploy (Blue-Green with ArgoCD)
-  # This step would typically:
-  # 1. Check out the GitOps repository (if separate from app repo)
-  # 2. Update the Helm chart values (values.yaml or a specific values file for the app)
-  #    - Set the new image.tag
-  #    - Potentially switch a 'color' variable if using separate blue/green deployments
-  # 3. Commit and push the change to the GitOps repository
-  # 4. ArgoCD (running in the cluster) detects the change and applies the updated Helm chart
-  #    - ArgoCD's sync policy would handle the rollout strategy (e.g., BlueGreen via Argo Rollouts or simple deployment update)
-  deploy-production:
-     runs-on: ubuntu-latest
-     needs: ephemeral-test # Run only after ephemeral test passes
-     if: github.ref == 'refs/heads/main' # Only run for main branch pushes
-
-     steps:
-       - name: Simulate Production Deployment Trigger
-         run: |
-           echo "Production deployment would be triggered here."
-           echo "Image tag to deploy: ${{ needs.build-test-scan-push.outputs.image_tag }}"
-           echo "Steps would involve updating GitOps repo (e.g., helm values) and pushing."
-           echo "ArgoCD would then pick up the change and deploy to Kubernetes."
-           # Example (Conceptual - requires a GitOps repo setup):
-           # git clone <gitops-repo-url> gitops
-           # cd gitops
-           # yq e '.image.tag = "${{ needs.build-test-scan-push.outputs.image_tag }}"' -i path/to/your/app/values.yaml
-           # git config user.name github-actions
-           # git config user.email github-actions@github.com
-           # git commit -am "Deploy hello-world image ${{ needs.build-test-scan-push.outputs.image_tag }}"
-           # git push
-name: CI/CD Pipeline
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ github.sha }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -179,6 +30,14 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
+    - name: Set up Gradle Wrapper
+      run: |
+        mkdir -p gradle/wrapper
+        curl -o gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v7.4.2/gradle/wrapper/gradle-wrapper.jar
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
     - name: Cache Gradle packages
       uses: actions/cache@v3
       with:
@@ -186,9 +45,6 @@ jobs:
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
 
     - name: Build with Gradle
       run: ./gradlew build
@@ -240,42 +96,57 @@ jobs:
         docker push ${{ github.repository_owner }}/hawk-hello-world:${{ github.sha }}
         docker push ${{ github.repository_owner }}/hawk-hello-world:latest
 
+  ephemeral-test:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
     - name: Set up kind cluster
-      if: github.event_name != 'pull_request'
       uses: helm/kind-action@v1.5.0
       with:
         cluster_name: ephemeral-test
 
+    - name: Grant execute permission for ephemeral check script
+      run: chmod +x ephemeral-check.sh
+
     - name: Deploy to ephemeral environment
-      if: github.event_name != 'pull_request'
       run: |
         helm install ephemeral-hello ./helm \
           --set image.repository=${{ github.repository_owner }}/hawk-hello-world \
-          --set image.tag=${{ github.sha }} \
+          --set image.tag=${{ needs.build.outputs.image_tag }} \
           --set ephemeral=true \
           --wait
 
     - name: Run smoke test
-      if: github.event_name != 'pull_request'
-      run: |
-        chmod +x ./ephemeral-check.sh
-        ./ephemeral-check.sh
+      run: ./ephemeral-check.sh
 
     - name: Upload ephemeral logs
-      if: always() && github.event_name != 'pull_request'
+      if: always()
       uses: actions/upload-artifact@v3
       with:
         name: ephemeral-logs
         path: ephemeral-logs.txt
 
     - name: Cleanup ephemeral environment
-      if: always() && github.event_name != 'pull_request'
+      if: always()
       run: |
         helm uninstall ephemeral-hello || true
         kind delete cluster --name ephemeral-test || true
 
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [build, ephemeral-test]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
     - name: Update Helm chart values
-      if: github.event_name != 'pull_request' && success()
       run: |
         # Determine current color and switch to the other one
         CURRENT_COLOR=$(grep 'color:' ./helm/values.yaml | awk '{print $2}')
@@ -286,7 +157,7 @@ jobs:
         fi
         
         # Update the values.yaml file with new image tag and color
-        sed -i "s/tag: .*/tag: ${{ github.sha }}/" ./helm/values.yaml
+        sed -i "s/tag: .*/tag: ${{ needs.build.outputs.image_tag }}/" ./helm/values.yaml
         sed -i "s/color: .*/color: $NEW_COLOR/" ./helm/values.yaml
         
         # Configure Git
@@ -295,5 +166,12 @@ jobs:
         
         # Commit and push changes
         git add ./helm/values.yaml
-        git commit -m "Update image tag to ${{ github.sha }} and switch to $NEW_COLOR deployment"
+        git commit -m "Update image tag to ${{ needs.build.outputs.image_tag }} and switch to $NEW_COLOR deployment"
         git push
+
+    - name: Simulate ArgoCD Sync
+      run: |
+        echo "In a real environment, ArgoCD would detect the change in the Git repository"
+        echo "and automatically sync the application to the Kubernetes cluster."
+        echo "Image tag deployed: ${{ needs.build.outputs.image_tag }}"
+        echo "Deployment color: $(grep 'color:' ./helm/values.yaml | awk '{print $2}')"
