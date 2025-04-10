@@ -1,22 +1,35 @@
 # Default values for hello-world.
+
 replicaCount: 1
 
 image:
+  # Repository location for the Docker image.
+  # The pipeline will override the tag with the Git SHA.
   repository: hello-world
   pullPolicy: IfNotPresent
+  # Default tag, overridden by the CI/CD pipeline during deployment
   tag: "latest"
 
+# Override the chart name
 nameOverride: ""
+# Override the full release name
 fullnameOverride: ""
 
 deployment:
-  color: blue  # blue or green for blue-green deployment
+  # Controls the active deployment for Blue-Green strategy.
+  # The pipeline updates this between 'blue' and 'green' and updates the service selector.
+  color: blue
 
 service:
+  # Type of Kubernetes service
   type: ClusterIP
+  # Port the service exposes (not used by current console app, but kept for structure)
   port: 80
-  targetPort: 80
+  # Port on the container the service targets (not used by current console app)
+  # targetPort: 80
 
+# Resource requests and limits for the application container.
+# Adjust these based on observed application performance.
 resources:
   limits:
     cpu: 100m
@@ -26,14 +39,30 @@ resources:
     memory: 64Mi
 
 serviceAccount:
+  # Specifies whether a service account should be created
   create: true
+  # Annotations to add to the service account
   annotations: {}
+  # The name of the service account to use. If not set and create is true, a name is generated.
   name: ""
 
 podSecurityContext: {}
+  # fsGroup: 2000
+
 securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  runAsNonRoot: true # Enforce non-root execution at Kubernetes level
+  # runAsUser: 1000 # Optional: Specify exact user ID if needed
+
 nodeSelector: {}
+
 tolerations: []
+
 affinity: {}
 
+# Flag indicating if this deployment is for the ephemeral test environment.
+# Used by the CI pipeline to differentiate ephemeral deployments.
 ephemeral: false
