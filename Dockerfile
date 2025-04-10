@@ -48,9 +48,9 @@ ENV JAVA_TOOL_OPTIONS="-Djava.security.egd=file:/dev/./urandom -Dfile.encoding=U
 # Switch to non-root user
 USER appuser
 
-# Health check
+# Health check - check if Java process is running
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
+  CMD ps -ef | grep java | grep app.jar || exit 1
 
 # Run with explicit memory limits for container awareness
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

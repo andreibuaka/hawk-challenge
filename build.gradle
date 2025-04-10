@@ -26,6 +26,11 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:1.7.36'
     implementation 'ch.qos.logback:logback-classic:1.2.11'
     
+    // JSON logging support
+    implementation 'ch.qos.logback.contrib:logback-json-classic:0.1.5'
+    implementation 'ch.qos.logback.contrib:logback-jackson:0.1.5'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.3'
+    
     // Add Micrometer for metrics (optional but recommended)
     implementation 'io.micrometer:micrometer-core:1.9.0'
 }
