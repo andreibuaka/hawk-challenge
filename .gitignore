@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
+
+# Log files
+*.log
+
+# VM crash logs
+hs_err_pid*
+
+# Aider
+.aider*
+*.aider.tags.cache.v4/
