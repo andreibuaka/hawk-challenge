@@ -22,12 +22,6 @@
     COPY src ./src
     COPY config ./config
 
-    # ---- Debug: Confirm working directory, cat, head ----
-    RUN pwd
-    RUN cat /app/config/checkstyle.xml
-    RUN head -n 5 /app/config/checkstyle.xml
-    # ------------------------------------------------------
-
     # Run the full build
     RUN ./gradlew build --no-daemon
     # RUN ./gradlew checkstyleMain --info --no-daemon # Keep isolated checkstyle command commented out

@@ -69,7 +69,7 @@ test {
 }
 
 checkstyle {
-    toolVersion = '8.45.1'
+    toolVersion = '9.3'
     configFile = file("config/checkstyle.xml")
     maxWarnings = 0
     ignoreFailures = false
