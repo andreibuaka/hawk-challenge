@@ -5,7 +5,7 @@ replicaCount: 1
 image:
   # Repository location for the Docker image.
   # The pipeline will override the tag with the Git SHA.
-  repository: hello-world
+  repository: andreibuaka/hawk-hello-world
   pullPolicy: IfNotPresent
   # Default tag, overridden by the CI/CD pipeline during deployment
   tag: "latest"
@@ -19,6 +19,15 @@ deployment:
   # Controls the active deployment for Blue-Green strategy.
   # The pipeline updates this between 'blue' and 'green' and updates the service selector.
   color: blue
+  # Health check configuration
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 5
 
 service:
   # Type of Kubernetes service
@@ -29,7 +38,7 @@ service:
   # targetPort: 80
 
 # Resource requests and limits for the application container.
-# Adjust these based on observed application performance.
+# Optimized based on observed application performance.
 resources:
   limits:
     cpu: 100m
@@ -46,16 +55,16 @@ serviceAccount:
   # The name of the service account to use. If not set and create is true, a name is generated.
   name: ""
 
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext:
+  fsGroup: 1000
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  runAsNonRoot: true # Enforce non-root execution at Kubernetes level
-  # runAsUser: 1000 # Optional: Specify exact user ID if needed
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
 
 nodeSelector: {}
 

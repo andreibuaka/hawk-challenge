@@ -1,142 +1,126 @@
 # Hawk Hello World CI/CD Challenge
 
-This project demonstrates a complete CI/CD pipeline for a simple Java application that prints "Hello World" every two seconds.
+This project demonstrates a complete CI/CD pipeline for a simple Java application that prints "Hello World" every two seconds, with a focus on GitOps, blue-green deployments, and security best practices.
 
 ## Project Structure
 
-- `src/main/java/com/example/HelloWorld.java`: The main application
-- `src/test/java/com/example/HelloWorldTest.java`: Unit tests
-- `Dockerfile`: Multi-stage build for creating the application container
+- `src/main/java/com/example/HelloWorld.java`: The main application with SLF4J logging
+- `src/test/java/com/example/HelloWorldTest.java`: Unit tests with JUnit 5
+- `Dockerfile`: Multi-stage build for creating a secure, optimized container
 - `helm/`: Helm chart for Kubernetes deployment with blue-green strategy
-- `.github/workflows/`: GitHub Actions workflows for CI/CD
+- `.github/workflows/`: GitHub Actions workflows for CI/CD and security scanning
+- `argocd/`: ArgoCD configuration for GitOps deployment
 - `ephemeral-check.sh`: Script for testing the ephemeral environment
 
-## CI/CD Pipeline
+## CI/CD Pipeline Features
 
-The pipeline includes the following steps:
+The pipeline implements modern DevOps practices:
 
-1. Build the Java application with Gradle
-2. Run tests with JUnit and measure code coverage with JaCoCo (min 40%)
-3. Perform static code analysis with Checkstyle
-4. Build a Docker image (running as non-root `appuser`)
-5. Scan the Docker image for vulnerabilities with Trivy
-6. Push the Docker image to Docker Hub
-7. Deploy to an ephemeral environment using kind (Kubernetes in Docker)
-8. Run smoke tests on the ephemeral environment (checks logs)
-9. Update the Helm chart (`values.yaml`) with the new image tag and switch deployment color using `yq`.
-10. Push the updated `values.yaml` back to the Git repository (triggers ArgoCD in a real scenario).
+1. **Build & Test**: Java application built with Gradle
+   - JUnit 5 tests with minimum 40% code coverage via JaCoCo
+   - Static code analysis with Checkstyle
+
+2. **Container Security**:
+   - Multi-stage Docker build with minimal final image
+   - Non-root user execution (`appuser`)
+   - Trivy vulnerability scanning with fail-on-critical policy
+   - Weekly scheduled security scans for newly discovered CVEs
+
+3. **Deployment Strategy**:
+   - Blue-Green deployment via Helm chart
+   - Ephemeral testing environment using kind (Kubernetes in Docker)
+   - Automated smoke tests on ephemeral environment
+   - GitOps workflow with ArgoCD
+
+4. **Observability**:
+   - Structured logging with SLF4J and Logback
+   - Kubernetes liveness and readiness probes
 
 ## Blue-Green Deployment
 
-The Helm chart is configured for blue-green deployments using a `color` value (`blue` or `green`) in `helm/values.yaml`. The pipeline automatically determines the *next* color, updates the `image.tag` and `deployment.color` in `values.yaml`, and pushes the change. The Kubernetes Service selector (`app.kubernetes.io/color`) ensures traffic only goes to the active color's deployment. The Deployment includes basic `exec` based liveness and readiness probes.
+The Helm chart implements blue-green deployments by:
 
-## Weekly Security Scans
+1. Maintaining two identical deployments (blue and green)
+2. The CI/CD pipeline automatically toggles between colors for each deployment
+3. Only the active color receives traffic via the Kubernetes Service selector
+4. Zero-downtime deployments with gradual traffic shifting
 
-A separate workflow runs weekly to scan the latest Docker image for newly discovered vulnerabilities.
+## Setting Up the Pipeline
 
-## Local Development
+### GitHub Actions Configuration
 
-To build and run the application locally:
+Set up these repository secrets:
+
+- `DOCKER_USERNAME`: Your Docker Hub username
+- `DOCKER_PASSWORD`: Your Docker Hub password or access token
+- `GIT_PUSH_TOKEN`: GitHub Personal Access Token with `contents: write` permission
+
+### Local Development & Testing
+
+#### Quick Start
 
 ```bash
+# Build and run locally
 ./gradlew build
 java -jar build/libs/hello-world-1.0-SNAPSHOT.jar
-```
 
-To build and run the Docker image locally:
-
-```bash
-docker build -t hello-world .
-docker run hello-world
-```
-
-## GitHub Actions Setup
-
-Before running the pipeline on GitHub Actions, you need to set up the following secrets in your repository (`Settings -> Secrets and variables -> Actions`):
-
-- `DOCKER_USERNAME`: Your Docker Hub username.
-- `DOCKER_PASSWORD`: Your Docker Hub password or access token.
-- `GIT_PUSH_TOKEN`: A GitHub Personal Access Token (Classic or Fine-Grained) with `contents: write` permission for this repository. This is required for the pipeline to push the updated `helm/values.yaml` back to the repository for the GitOps workflow.
-
-The pipeline uses `yq` to update YAML files; this is installed automatically during the workflow.
-
-## Prerequisites
-
-- Java 17 or later
-- Docker
-- Kubernetes (like `kind` or Minikube for local deployment testing)
-- `kubectl` (Kubernetes CLI)
-- `helm` (Helm v3+ CLI)
-- `yq` (v4+, needed if manually simulating the pipeline's Helm update step locally)
-
-## Local Setup & Testing
-
-### 1. Build and Run Locally (Java/Docker)
-
-```bash
-# Ensure Java 17 and Docker are installed and running
-
-# Build the application and run tests
-./gradlew build
-
-# Run the Java application directly
-# java -jar build/libs/hello-world-1.0-SNAPSHOT.jar
-
-# Build the Docker image
+# Build and run Docker container
 docker build -t hawk-hello-world:local .
-
-# Run the Docker container
 docker run --rm hawk-hello-world:local
 ```
 
-### 2. Full Local GitOps Flow with kind and ArgoCD
-
-This setup replicates the core GitOps deployment flow locally.
-
-**Prerequisites:** `kind`, `kubectl`, `helm`.
+#### Complete Local GitOps Flow
 
 ```bash
-# --- Setup (Only needs to be done once) ---
-
-# 1. Create a local kind cluster
+# Create local Kubernetes cluster
 kind create cluster --name hawk-challenge
 
-# 2. Install ArgoCD into the cluster
+# Install ArgoCD
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-# Wait for ArgoCD pods to be ready (check with `kubectl get pods -n argocd`)
-# This might take a few minutes.
+# Access ArgoCD UI (in a separate terminal)
+kubectl port-forward svc/argocd-server -n argocd 8080:443
 
-# 3. (Optional) Access ArgoCD UI - requires port-forwarding
-# kubectl port-forward svc/argocd-server -n argocd 8080:443 &
-# # Get initial admin password:
-# kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
-# # Access UI at https://localhost:8080 (login as admin with the password)
+# Get ArgoCD admin password
+ARGO_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+echo "ArgoCD Password: $ARGO_PASSWORD"
 
-# 4. Configure ArgoCD to manage the application
-#    EDIT `argocd/application.yaml` first:
-#    Replace 'REPO_URL_PLACEHOLDER' with the HTTPS URL of YOUR GitHub repository.
-#    Example: repoURL: 'https://github.com/your-username/your-repo-name.git'
-
-# Apply the ArgoCD Application manifest to your cluster
+# Configure ArgoCD application
+# First edit argocd/application.yaml to set your repository URL
 kubectl apply -f argocd/application.yaml
 
-# --- Testing the Flow ---
-
-# Now, whenever the GitHub Actions pipeline completes a successful run on the `main` branch:
-# 1. The pipeline pushes an updated `helm/values.yaml` to your Git repository.
-# 2. ArgoCD (running in your local `kind` cluster) automatically detects this change.
-# 3. ArgoCD syncs the change, applying the updated Helm chart to the `default` namespace in your `kind` cluster.
-
-# You can monitor the deployment in your local cluster:
-kubectl get deployments -n default
-kubectl get pods -n default -w # Watch pods
-# Check logs of a specific pod
-# kubectl logs <pod-name> -n default
-
-# --- Cleanup ---
-# Delete the kind cluster when done
-# kind delete cluster --name hawk-challenge
+# Verify deployment
+kubectl get deployments,pods -n default
+kubectl logs -f $(kubectl get pods -n default -l app.kubernetes.io/instance=hello-world-app-hello-world -o jsonpath='{.items[0].metadata.name}')
 ```
+
+## Verification & Troubleshooting
+
+### Common Issues
+
+- **ArgoCD not syncing**: Ensure repository is public or credentials are configured
+- **Port-forward issues**: Check for existing processes using port 8080
+- **Pipeline failures**: Verify all required secrets are configured
+
+### Verification Commands
+
+```bash
+# Check deployment status
+kubectl get deployments -n default -o wide
+
+# Verify pod logs
+POD_NAME=$(kubectl get pods -n default -l app.kubernetes.io/instance=hello-world-app-hello-world -o jsonpath='{.items[0].metadata.name}')
+kubectl logs $POD_NAME -n default
+
+# Test blue-green switch by triggering a new deployment
+# Make a small change to the repo, commit and push to main
+```
+
+## Prerequisites
+
+- Java 17+
+- Docker
+- Kubernetes tools: kubectl, helm, kind
+- yq v4+ (for local testing of Helm updates)
 
