@@ -22,8 +22,10 @@
     COPY src ./src
     COPY config ./config
 
-    # ---- Debug line moved before build ----
-    RUN ls -la /app/config
+    # ---- Debug: Confirm working directory and cat the config file ----
+    RUN pwd
+    RUN cat /app/config/checkstyle.xml
+    # ---------------------------------------------------------------
 
     # Run the full build (will be faster as deps are likely cached)
     RUN ./gradlew build --no-daemon
