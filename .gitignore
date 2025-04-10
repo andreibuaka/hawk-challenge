@@ -21,6 +21,4 @@ out/
 # VM crash logs
 hs_err_pid*
 
-# Aider
-.aider*
-*.aider.tags.cache.v4/
+# Aider lines removed as requested
