@@ -2,8 +2,8 @@
     FROM gradle:7.4.2-jdk17-focal AS builder
     WORKDIR /app
 
-    # Install XML validator
-    RUN apt-get update && apt-get install -y --no-install-recommends libxml2-utils && rm -rf /var/lib/apt/lists/*
+    # Install XML validator (Optional for this stage, keep if useful)
+    # RUN apt-get update && apt-get install -y --no-install-recommends libxml2-utils && rm -rf /var/lib/apt/lists/*
 
     # Copy dependency-related files first
     COPY build.gradle settings.gradle ./
@@ -25,8 +25,8 @@
     COPY src ./src
     COPY config ./config
 
-    # ---- Debug: Validate XML ----
-    RUN xmllint --noout /app/config/checkstyle.xml
+    # ---- Debug lines removed ----
+    # RUN xmllint --noout /app/config/checkstyle.xml
     # ----------------------------
 
     # Run the full build
