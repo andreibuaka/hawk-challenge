@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  # Name of the ArgoCD Application resource
+  name: hello-world-app
+  # Deploy ArgoCD resources into the argocd namespace
+  namespace: argocd
+  # Add finalizer for proper cleanup
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # Project defines logical grouping of applications (default project is fine)
+  project: default
+  # Source of the application definition
+  source:
+    # !! Repository URL updated !!
+    repoURL: 'https://github.com/andreibuaka/hawk-challenge.git'
+    # Path within the repository where the Helm chart is located
+    path: helm
+    # Target revision (branch, tag, or commit)
+    targetRevision: HEAD # Track the latest commit on the default branch (main)
+    # Specify that the source is a Helm chart
+    helm:
+      # Use values from the values.yaml file in the chart path
+      valueFiles:
+        - values.yaml
+  # Destination cluster and namespace for deployment
+  destination:
+    # URL of the target cluster (use the default Kubernetes service for in-cluster)
+    server: https://kubernetes.default.svc
+    # Namespace to deploy the Helm release into
+    namespace: default # Deploy the app into the default namespace
+  # Sync policy: Defines how ArgoCD applies changes
+  syncPolicy:
+    # Enable automated synchronization
+    automated:
+      # Automatically prune resources that are no longer defined in Git
+      prune: true
+      # Automatically apply changes detected in Git
+      selfHeal: true
+    # Options for the sync operation
+    syncOptions:
+      - CreateNamespace=true # Automatically create the namespace if it doesn't exist 
