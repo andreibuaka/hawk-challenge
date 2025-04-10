@@ -22,9 +22,8 @@
     COPY src ./src
     COPY config ./config
 
-    # ---- ADD THIS DEBUG LINE ----
+    # ---- Debug line moved before build ----
     RUN ls -la /app/config
-    # ---------------------------
 
     # Run the full build (will be faster as deps are likely cached)
     RUN ./gradlew build --no-daemon
