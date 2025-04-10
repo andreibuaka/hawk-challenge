@@ -28,7 +28,8 @@
     # ---------------------------------------------------------------
 
     # Run the full build (will be faster as deps are likely cached)
-    RUN ./gradlew build --no-daemon
+    # RUN ./gradlew build --no-daemon
+    RUN ./gradlew checkstyleMain --info --no-daemon
 
     # Stage 2: Create the final lightweight image
     FROM amazoncorretto:17-alpine
