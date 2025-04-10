@@ -22,16 +22,15 @@
     COPY src ./src
     COPY config ./config
 
-    # ---- Debug: Confirm working directory, cat, head, and file type ----
+    # ---- Debug: Confirm working directory, cat, head ----
     RUN pwd
     RUN cat /app/config/checkstyle.xml
     RUN head -n 5 /app/config/checkstyle.xml
-    RUN file /app/config/checkstyle.xml
-    # ------------------------------------------------------------------
+    # ------------------------------------------------------
 
-    # Run the checkstyle task with more info (Isolated build command below)
-    # RUN ./gradlew build --no-daemon
-    RUN ./gradlew checkstyleMain --info --no-daemon
+    # Run the full build
+    RUN ./gradlew build --no-daemon
+    # RUN ./gradlew checkstyleMain --info --no-daemon # Keep isolated checkstyle command commented out
 
     # Stage 2: Create the final lightweight image
     FROM amazoncorretto:17-alpine
