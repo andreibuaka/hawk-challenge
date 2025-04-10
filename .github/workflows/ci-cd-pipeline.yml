@@ -7,6 +7,11 @@ on:
     branches: [ "main" ]
   workflow_dispatch: # Allow manual triggering
 
+# Define default permissions for the workflow
+permissions:
+  contents: read # Default: read-only access
+  packages: write # Needed for Docker push to GitHub Packages (if used)
+
 # Only allow one deployment to run at a time for the main branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -30,11 +35,6 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Set up Gradle Wrapper
-      run: |
-        mkdir -p gradle/wrapper
-        curl -o gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v7.4.2/gradle/wrapper/gradle-wrapper.jar
-
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
@@ -56,14 +56,14 @@ jobs:
       run: ./gradlew checkstyleMain
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       if: always()
       with:
         name: test-results
         path: build/reports/tests/
 
     - name: Upload coverage report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
         name: coverage-report
         path: build/reports/jacoco/
@@ -126,7 +126,7 @@ jobs:
 
     - name: Upload ephemeral logs
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
         name: ephemeral-logs
         path: ephemeral-logs.txt
@@ -141,14 +141,30 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, ephemeral-test]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Grant write permission for contents for this specific job
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Update Helm chart values
+    - name: Install yq
       run: |
-        # Determine current color and switch to the other one
+        # Download yq binary
+        wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /tmp/yq
+        # Download checksum
+        wget https://github.com/mikefarah/yq/releases/latest/download/checksums -O /tmp/checksums
+        # Verify checksum
+        grep yq_linux_amd64 /tmp/checksums | sha256sum -c -
+        # Install if checksum is valid
+        sudo mv /tmp/yq /usr/bin/yq
+        sudo chmod +x /usr/bin/yq
+        rm /tmp/checksums
+      shell: bash
+
+    - name: Update Helm chart values using yq
+      run: |
         CURRENT_COLOR=$(grep 'color:' ./helm/values.yaml | awk '{print $2}')
         if [ "$CURRENT_COLOR" == "blue" ]; then
           NEW_COLOR="green"
@@ -156,9 +172,12 @@ jobs:
           NEW_COLOR="blue"
         fi
         
-        # Update the values.yaml file with new image tag and color
-        sed -i "s/tag: .*/tag: ${{ needs.build.outputs.image_tag }}/" ./helm/values.yaml
-        sed -i "s/color: .*/color: $NEW_COLOR/" ./helm/values.yaml
+        echo "Switching deployment color to: $NEW_COLOR"
+        echo "Updating image tag to: ${{ needs.build.outputs.image_tag }}"
+        
+        # Update the values.yaml file with new image tag and color using yq
+        yq e '.image.tag = "${{ needs.build.outputs.image_tag }}"' -i ./helm/values.yaml
+        yq e '.deployment.color = env(NEW_COLOR)' -i ./helm/values.yaml
         
         # Configure Git
         git config --global user.name 'GitHub Actions'
@@ -167,11 +186,28 @@ jobs:
         # Commit and push changes
         git add ./helm/values.yaml
         git commit -m "Update image tag to ${{ needs.build.outputs.image_tag }} and switch to $NEW_COLOR deployment"
-        git push
+        
+        # Push changes using a PAT or Deploy Key stored in secrets.GIT_PUSH_TOKEN
+        # Ensure the secret GIT_PUSH_TOKEN is configured in repository settings
+        git remote set-url origin https://x-access-token:${{ secrets.GIT_PUSH_TOKEN }}@github.com/${{ github.repository }}.git
+        
+        # Attempt git push with retries
+        for i in 1 2 3; do
+          git push origin HEAD:main && echo "Git push successful on attempt $i" && break
+          if [ $i -eq 3 ]; then
+            echo "Git push failed after $i attempts."
+            exit 1
+          fi
+          echo "Git push failed on attempt $i. Retrying in 5 seconds..."
+          sleep 5
+        done
+      env:
+        NEW_COLOR: "${{ env.NEW_COLOR }}" # Pass NEW_COLOR to env context for yq
 
-    - name: Simulate ArgoCD Sync
+    - name: ArgoCD Sync Triggered
       run: |
-        echo "In a real environment, ArgoCD would detect the change in the Git repository"
-        echo "and automatically sync the application to the Kubernetes cluster."
-        echo "Image tag deployed: ${{ needs.build.outputs.image_tag }}"
-        echo "Deployment color: $(grep 'color:' ./helm/values.yaml | awk '{print $2}')"
+        echo "Pipeline has pushed updated Helm values to Git (repoURL: ${{ github.server_url }}/${{ github.repository }}.git, path: helm)."
+        echo "If ArgoCD is configured locally (or remotely) to watch this repository and path,"
+        echo "it will now automatically detect the change and sync the application."
+        echo "Image tag pushed: ${{ needs.build.outputs.image_tag }}"
+        echo "Deployment color set to: $(yq e '.deployment.color' ./helm/values.yaml)"
