@@ -121,7 +121,7 @@ jobs:
           --set image.repository=${{ github.repository_owner }}/hawk-hello-world \
           --set image.tag=${{ needs.build.outputs.image_tag }} \
           --set ephemeral=true \
-          --wait
+          --wait --timeout 10m
 
     - name: Run smoke test
       run: ./ephemeral-check.sh

@@ -30,6 +30,26 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.deployment.livenessProbe.enabled }}
+          livenessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - ps -ef | grep java | grep app.jar
+            initialDelaySeconds: {{ .Values.deployment.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.livenessProbe.periodSeconds }}
+          {{- end }}
+          {{- if .Values.deployment.readinessProbe.enabled }}
+          readinessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - ps -ef | grep java | grep app.jar
+            initialDelaySeconds: {{ .Values.deployment.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.readinessProbe.periodSeconds }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
