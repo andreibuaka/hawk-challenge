@@ -36,7 +36,7 @@ spec:
               command:
               - sh
               - -c
-              - ps -ef | grep java | grep app.jar
+              - test -f /app/app.jar
             initialDelaySeconds: {{ .Values.deployment.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.deployment.livenessProbe.periodSeconds }}
           {{- end }}
@@ -46,7 +46,7 @@ spec:
               command:
               - sh
               - -c
-              - ps -ef | grep java | grep app.jar
+              - test -f /app/app.jar
             initialDelaySeconds: {{ .Values.deployment.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.deployment.readinessProbe.periodSeconds }}
           {{- end }}
