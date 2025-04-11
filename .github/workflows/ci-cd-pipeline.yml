@@ -13,9 +13,10 @@ permissions:
   packages: write # Needed for Docker push to GitHub Packages (if used)
 
 # Only allow one deployment to run at a time for the main branch
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+# Temporarily disable concurrency control for debugging
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: true
 
 jobs:
   build:
