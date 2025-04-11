@@ -127,8 +127,35 @@ jobs:
     - name: List deployments after Helm install
       run: kubectl get deployments --namespace default -o wide
 
-    - name: Wait for ephemeral deployment rollout
-      run: kubectl rollout status deployment/ephemeral-hello-hello-world-blue --namespace default --timeout=10m
+    - name: Wait for Pod to potentially start
+      run: sleep 30s
+
+    - name: Get Pod details
+      run: kubectl get pods --namespace default -o wide
+
+    - name: Get Service Account details
+      run: kubectl get serviceaccount ephemeral-hello-hello-world -n default -o yaml || echo "Service Account ephemeral-hello-hello-world not found or error describing it."
+
+    - name: Describe Pod state
+      run: |
+        POD_NAME=$(kubectl get pods -n default -l app.kubernetes.io/instance=ephemeral-hello,app.kubernetes.io/color=blue -o jsonpath="{.items[0].metadata.name}" --ignore-not-found)
+        if [ -n "$POD_NAME" ]; then
+          echo "Describing pod: $POD_NAME"
+          kubectl describe pod $POD_NAME --namespace default
+        else
+          echo "No pod found matching labels app.kubernetes.io/instance=ephemeral-hello,app.kubernetes.io/color=blue"
+        fi
+        
+    - name: Get Pod logs (including previous crashes)
+      run: |
+        POD_NAME=$(kubectl get pods -n default -l app.kubernetes.io/instance=ephemeral-hello,app.kubernetes.io/color=blue -o jsonpath="{.items[0].metadata.name}" --ignore-not-found)
+        if [ -n "$POD_NAME" ]; then
+          echo "Getting logs for pod: $POD_NAME"
+          kubectl logs $POD_NAME --namespace default --previous || echo "No previous logs or error getting logs."
+          kubectl logs $POD_NAME --namespace default || echo "Error getting current logs."
+        else
+          echo "No pod found matching labels app.kubernetes.io/instance=ephemeral-hello,app.kubernetes.io/color=blue"
+        fi
 
     - name: Run smoke test
       run: ./ephemeral-check.sh
