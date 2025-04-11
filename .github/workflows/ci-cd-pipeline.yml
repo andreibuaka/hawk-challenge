@@ -121,7 +121,11 @@ jobs:
         helm install ephemeral-hello ./helm \
           --set image.repository=${{ github.repository_owner }}/hawk-hello-world \
           --set image.tag=${{ needs.build.outputs.image_tag }} \
-          --set ephemeral=true
+          --set ephemeral=true \
+          --debug
+
+    - name: List deployments after Helm install
+      run: kubectl get deployments --namespace default -o wide
 
     - name: Wait for ephemeral deployment rollout
       run: kubectl rollout status deployment/ephemeral-hello-hello-world --namespace default --timeout=10m
