@@ -1,24 +1,20 @@
 # Default values for hello-world.
-
 replicaCount: 1
-
 image:
   # Repository location for the Docker image.
   # The pipeline will override the tag with the Git SHA.
   repository: andreibuaka/hawk-hello-world
   pullPolicy: IfNotPresent
   # Default tag, overridden by the CI/CD pipeline during deployment
-  tag: "latest"
-
+  tag: "a1040f4d9822117c4035a8d205c869d6c6f447c4"
 # Override the chart name
 nameOverride: ""
 # Override the full release name
 fullnameOverride: ""
-
 deployment:
   # Controls the active deployment for Blue-Green strategy.
   # The pipeline updates this between 'blue' and 'green' and updates the service selector.
-  color: blue
+  color: green
   # Health check configuration
   livenessProbe:
     enabled: true
@@ -28,7 +24,6 @@ deployment:
     enabled: true
     initialDelaySeconds: 5
     periodSeconds: 5
-
 service:
   # Type of Kubernetes service
   type: ClusterIP
@@ -36,7 +31,6 @@ service:
   port: 80
   # Port on the container the service targets (not used by current console app)
   # targetPort: 80
-
 # Resource requests and limits for the application container.
 # Optimized based on observed application performance.
 resources:
@@ -46,7 +40,6 @@ resources:
   requests:
     cpu: 50m
     memory: 64Mi
-
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -54,24 +47,18 @@ serviceAccount:
   annotations: {}
   # The name of the service account to use. If not set and create is true, a name is generated.
   name: ""
-
 podSecurityContext:
   fsGroup: 1000
-
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
-
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}
-
 # Flag indicating if this deployment is for the ephemeral test environment.
 # Used by the CI pipeline to differentiate ephemeral deployments.
 ephemeral: false
