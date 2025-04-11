@@ -128,7 +128,7 @@ jobs:
       run: kubectl get deployments --namespace default -o wide
 
     - name: Wait for ephemeral deployment rollout
-      run: kubectl rollout status deployment/ephemeral-hello-hello-world --namespace default --timeout=10m
+      run: kubectl rollout status deployment/ephemeral-hello-hello-world-blue --namespace default --timeout=10m
 
     - name: Run smoke test
       run: ./ephemeral-check.sh
