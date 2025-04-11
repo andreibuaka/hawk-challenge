@@ -132,12 +132,12 @@ jar {
         )
     }
     
-    // Include all runtime dependencies
+    // Pull in all the stuff we need to run
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
     
-    // Handle duplicate files
+    // If we find duplicate files, just ignore the extras
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 

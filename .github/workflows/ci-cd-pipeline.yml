@@ -13,10 +13,9 @@ permissions:
   packages: write # Needed for Docker push to GitHub Packages (if used)
 
 # Only allow one deployment to run at a time for the main branch
-# Temporarily disable concurrency control for debugging
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.ref }}
-#   cancel-in-progress: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -55,21 +54,6 @@ jobs:
 
     - name: Run Checkstyle
       run: ./gradlew checkstyleMain
-
-    # Temporarily disable artifact uploads
-    # - name: Upload test results
-    #   uses: actions/upload-artifact@v3
-    #   if: always()
-    #   with:
-    #     name: test-results
-    #     path: build/reports/tests/
-
-    # Temporarily disable artifact uploads
-    # - name: Upload coverage report
-    #   uses: actions/upload-artifact@v3
-    #   with:
-    #     name: coverage-report
-    #     path: build/reports/jacoco/
 
     - name: Build Docker image
       run: |
@@ -159,14 +143,6 @@ jobs:
 
     - name: Run smoke test
       run: ./ephemeral-check.sh
-
-    # Temporarily disable artifact uploads
-    # - name: Upload ephemeral logs
-    #   if: always()
-    #   uses: actions/upload-artifact@v3
-    #   with:
-    #     name: ephemeral-logs
-    #     path: ephemeral-logs.txt
 
     - name: Cleanup ephemeral environment
       if: always()

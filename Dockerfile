@@ -16,9 +16,8 @@
     # Set Gradle options for better performance in containers
     ENV GRADLE_OPTS="-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.caching=true"
 
-    # Download dependencies (leverages cache if above files unchanged)
-    # Build dependencies first to leverage Docker cache.
-    # This runs build excluding tests/checks; errors ignored to ensure deps are fetched even if code fails early.
+    # Grab dependencies first to speed things up with Docker caching.
+    # We try building dependencies separately; errors here are ignored so we still fetch deps even if code is broken.
     RUN ./gradlew dependencies --no-daemon || echo "Ignoring build failure for dependency download stage"
 
     # Copy the rest of the source code
@@ -46,11 +45,11 @@
     # Create non-root user/group
     RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-    # Create directory for app with proper permissions
+    # Set up a directory for the app, making sure the right user owns it
     RUN mkdir -p /app/logs && \
         chown -R appuser:appgroup /app
 
-    # Copy the built jar from the builder stage, changing ownership immediately
+    # Copy the final JAR from the build stage, setting the owner right away
     COPY --from=builder --chown=appuser:appgroup /app/build/libs/*.jar app.jar
 
     # Set security flags
