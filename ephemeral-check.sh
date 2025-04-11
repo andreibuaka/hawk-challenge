@@ -36,7 +36,8 @@ found_log=false
 for ((i=1; i<=MAX_RETRIES; i++)); do
   log "Attempt $i of $MAX_RETRIES to fetch logs from pod '$POD_NAME'..."
   
-  if ! kube_log_output=$(kubectl logs --tail=50 --timeout=30s "$POD_NAME" -n "$NAMESPACE" 2>&1); then
+  # Use simpler kubectl logs command - remove tail and timeout
+  if ! kube_log_output=$(kubectl logs "$POD_NAME" -n "$NAMESPACE" 2>&1); then
     log "Warning: Failed to retrieve logs on attempt $i."
     if [ $i -eq $MAX_RETRIES ]; then
       log "❌ Failure: Failed to retrieve logs after $MAX_RETRIES attempts."
